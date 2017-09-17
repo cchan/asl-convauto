@@ -1,17 +1,19 @@
-from keras.layers import Input, Dense
+from keras.layers import *
 from keras.models import load_model, Sequential
 
 encoding_dim = 32
 image_x, image_y = (28, 28)
 image_dim = image_x * image_y
 
-#from keras.datasets import mnist
-#import numpy as np
-#(x_train, _), (x_test, _) = mnist.load_data()
-#x_train = x_train.astype('float32') / 255.
-#x_test = x_test.astype('float32') / 255.
-#x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
-#x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
+input_img = Input(shape=(28, 28, 1))
+
+from keras.datasets import mnist
+import numpy as np
+(x_train, _), (x_test, _) = mnist.load_data()
+x_train = x_train.astype('float32') / 255.
+x_test = x_test.astype('float32') / 255.
+x_train = x_train.reshape((len(x_train), 28, 28, 1))
+x_test = x_test.reshape((len(x_test), 28, 28, 1))
 
 import csv
 import os
@@ -95,10 +97,22 @@ try:
 except IOError:
   print("Failed, training a model.")
   autoencoder = Sequential([
-    Dense(image_dim * 2, activation = 'relu', input_dim = image_dim),
-    Dense(encoding_dim, activation='relu'),
-    Dense(image_dim * 2, activation = 'relu'),
-    Dense(image_dim, activation='sigmoid')
+    Conv2D(16, (3, 3), activation='relu', padding='same', input_shape=(28,28,1)),
+    MaxPooling2D((2, 2), padding='same'),
+    Conv2D(8, (3, 3), activation='relu', padding='same'),
+    MaxPooling2D((2, 2), padding='same'),
+    Conv2D(8, (3, 3), activation='relu', padding='same'),
+    MaxPooling2D((2, 2), padding='same'),
+
+# at this point the representation is (4, 4, 8) i.e. 128-dimensional
+
+    Conv2D(8, (3, 3), activation='relu', padding='same'),
+    UpSampling2D((2, 2)),
+    Conv2D(8, (3, 3), activation='relu', padding='same'),
+    UpSampling2D((2, 2)),
+    Conv2D(16, (3, 3), activation='relu'),
+    UpSampling2D((2, 2)),
+    Conv2D(1, (3, 3), activation='sigmoid', padding='same'),
   ])
 
   autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
